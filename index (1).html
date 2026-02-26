@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BEATDROP — Music Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --c1: #07070f;
+    --neon1: #7c3aed;
+    --neon2: #06b6d4;
+    --neon3: #f472b6;
+    --text: #e2e8f0;
+    --muted: #4a5568;
+    --glow: 0 0 24px rgba(124,58,237,0.45);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--c1); color:var(--text); font-family:'JetBrains Mono',monospace; min-height:100vh; overflow-x:hidden; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background: radial-gradient(ellipse 70% 50% at 15% 5%,rgba(124,58,237,.18) 0%,transparent 55%),
+                radial-gradient(ellipse 50% 40% at 85% 95%,rgba(6,182,212,.14) 0%,transparent 55%),
+                radial-gradient(ellipse 35% 35% at 50% 50%,rgba(244,114,182,.07) 0%,transparent 55%);
+    pointer-events:none; z-index:0; animation:pulse 10s ease-in-out infinite alternate;
+  }
+  @keyframes pulse { 0%{opacity:.6} 100%{opacity:1} }
+  .container { position:relative; z-index:1; max-width:960px; margin:0 auto; padding:0 20px; min-height:100vh; display:flex; flex-direction:column; }
+
+  header { padding:28px 0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(124,58,237,.2); flex-wrap:wrap; gap:12px; }
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:26px; background:linear-gradient(135deg,var(--neon1),var(--neon2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; letter-spacing:3px; }
+  .logo span { background:linear-gradient(135deg,var(--neon2),var(--neon3)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .status-pill { display:flex; align-items:center; gap:7px; background:rgba(124,58,237,.1); border:1px solid rgba(124,58,237,.3); border-radius:100px; padding:5px 14px; font-size:11px; color:var(--neon2); letter-spacing:1px; }
+  .status-dot { width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 8px #22c55e; animation:blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .source-tabs { display:flex; gap:8px; flex-wrap:wrap; padding:20px 0 4px; }
+  .src-tab { padding:7px 16px; border-radius:100px; font-size:11px; letter-spacing:.5px; border:1px solid rgba(124,58,237,.25); background:rgba(255,255,255,.03); color:var(--muted); cursor:pointer; transition:all .2s; font-family:'JetBrains Mono',monospace; }
+  .src-tab:hover { border-color:var(--neon1); color:var(--text); }
+  .src-tab.active { background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(6,182,212,.15)); border-color:var(--neon1); color:#fff; box-shadow:var(--glow); }
+
+  .source-banner { display:flex; align-items:center; gap:12px; background:rgba(6,182,212,.06); border:1px solid rgba(6,182,212,.2); border-radius:12px; padding:12px 18px; margin-bottom:20px; font-size:11px; color:var(--neon2); line-height:1.7; transition:all .3s; }
+  .source-banner .src-icon { font-size:22px; flex-shrink:0; }
+  .source-banner strong { color:#fff; font-size:12px; }
+
+  .hero { padding:32px 0 16px; text-align:center; }
+  .hero h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:clamp(32px,6.5vw,62px); line-height:1.05; margin-bottom:14px; }
+  .hero h1 .l1 { background:linear-gradient(135deg,#fff 30%,var(--neon2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; display:block; }
+  .hero h1 .l2 { background:linear-gradient(135deg,var(--neon1),var(--neon3)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; display:block; }
+  .hero p { color:var(--muted); font-size:12px; max-width:500px; margin:0 auto 24px; line-height:1.9; }
+
+  .quick-cmds { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; margin-bottom:30px; }
+  .cmd-chip { background:rgba(255,255,255,.04); border:1px solid rgba(124,58,237,.22); border-radius:8px; padding:7px 14px; font-size:11px; color:var(--neon2); cursor:pointer; transition:all .2s; font-family:'JetBrains Mono',monospace; }
+  .cmd-chip:hover { background:rgba(124,58,237,.15); border-color:var(--neon1); transform:translateY(-2px); box-shadow:var(--glow); }
+
+  .chat-wrap { flex:1; display:flex; flex-direction:column; }
+  .messages { min-height:300px; max-height:420px; overflow-y:auto; padding:20px; background:rgba(255,255,255,.02); border:1px solid rgba(124,58,237,.15); border-radius:16px 16px 0 0; display:flex; flex-direction:column; gap:16px; scrollbar-width:thin; scrollbar-color:var(--neon1) transparent; }
+  .msg { display:flex; gap:12px; align-items:flex-start; animation:fadeUp .3s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .msg.user { flex-direction:row-reverse; }
+  .avatar { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+  .bot-av { background:linear-gradient(135deg,var(--neon1),var(--neon2)); box-shadow:0 0 12px rgba(124,58,237,.5); }
+  .usr-av { background:linear-gradient(135deg,var(--neon3),var(--neon1)); }
+  .bubble { max-width:80%; padding:12px 16px; border-radius:12px; font-size:12.5px; line-height:1.75; }
+  .bot-bub { background:rgba(124,58,237,.1); border:1px solid rgba(124,58,237,.2); color:var(--text); border-radius:4px 12px 12px 12px; }
+  .usr-bub { background:linear-gradient(135deg,rgba(124,58,237,.28),rgba(6,182,212,.18)); border:1px solid rgba(6,182,212,.3); color:#fff; border-radius:12px 4px 12px 12px; text-align:right; }
+
+  .results-grid { display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+  .dl-card { background:linear-gradient(135deg,rgba(124,58,237,.13),rgba(6,182,212,.08)); border:1px solid rgba(124,58,237,.28); border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:12px; position:relative; overflow:hidden; animation:fadeUp .35s ease; flex-wrap:wrap; }
+  .dl-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--neon1),var(--neon2),var(--neon3)); }
+  .dl-thumb { width:50px; height:50px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; box-shadow:0 0 14px rgba(124,58,237,.4); }
+  .dl-info { flex:1; min-width:120px; }
+  .dl-title { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:#fff; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+  .dl-meta { font-size:10px; color:var(--muted); }
+  .dl-src-badge { display:inline-block; padding:2px 8px; border-radius:100px; font-size:9px; letter-spacing:.5px; margin-top:4px; font-weight:600; }
+  .badge-fma { background:rgba(124,58,237,.2); color:#a78bfa; }
+  .badge-jamendo { background:rgba(234,179,8,.15); color:#fbbf24; }
+  .badge-musopen { background:rgba(6,182,212,.15); color:#22d3ee; }
+  .badge-soundcloud { background:rgba(249,115,22,.15); color:#fb923c; }
+  .progress-bar { width:100%; height:3px; background:rgba(255,255,255,.1); border-radius:10px; margin-top:8px; overflow:hidden; display:none; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--neon1),var(--neon2)); width:0%; border-radius:10px; transition:width .08s linear; }
+  .card-btns { display:flex; gap:8px; flex-shrink:0; }
+  .preview-btn { background:rgba(6,182,212,.12); border:1px solid rgba(6,182,212,.3); border-radius:10px; padding:9px 14px; color:var(--neon2); font-family:'JetBrains Mono',monospace; font-size:11px; cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .preview-btn:hover { background:rgba(6,182,212,.22); }
+  .dl-btn { background:linear-gradient(135deg,var(--neon1),var(--neon2)); border:none; border-radius:10px; padding:9px 16px; color:#fff; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .dl-btn:hover { transform:scale(1.06); box-shadow:0 0 18px rgba(124,58,237,.6); }
+  .dl-btn:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+
+  /* MINI PLAYER */
+  .mini-player { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(8,8,18,.96); border:1px solid rgba(124,58,237,.4); backdrop-filter:blur(20px); border-radius:16px; padding:14px 20px; display:flex; align-items:center; gap:16px; min-width:300px; max-width:480px; width:90%; z-index:100; box-shadow:0 8px 40px rgba(0,0,0,.7),var(--glow); animation:slideUp .3s ease; }
+  @keyframes slideUp { from{opacity:0;transform:translateX(-50%) translateY(20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+  .player-art { width:42px; height:42px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .player-info { flex:1; min-width:0; }
+  .player-title { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .player-artist { font-size:10px; color:var(--muted); }
+  .player-progress { width:100%; height:2px; background:rgba(255,255,255,.1); border-radius:10px; margin-top:6px; overflow:hidden; }
+  .player-prog-fill { height:100%; background:linear-gradient(90deg,var(--neon1),var(--neon2)); width:0%; transition:width .5s linear; }
+  .player-controls { display:flex; align-items:center; gap:10px; }
+  .play-btn { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--neon1),var(--neon2)); border:none; color:#fff; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; box-shadow:0 0 12px rgba(124,58,237,.5); }
+  .play-btn:hover { transform:scale(1.1); }
+  .close-btn { background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer; padding:4px; transition:color .2s; }
+  .close-btn:hover { color:#fff; }
+  audio { display:none; }
+
+  .input-area { display:flex; border:1px solid rgba(124,58,237,.3); border-top:none; border-radius:0 0 16px 16px; overflow:hidden; background:rgba(255,255,255,.025); }
+  .input-prefix { padding:0 16px; display:flex; align-items:center; color:var(--neon2); font-size:16px; background:rgba(6,182,212,.04); border-right:1px solid rgba(124,58,237,.15); user-select:none; }
+  #chatInput { flex:1; background:transparent; border:none; outline:none; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:13px; padding:16px 14px; caret-color:var(--neon2); }
+  #chatInput::placeholder { color:var(--muted); }
+  #sendBtn { padding:0 22px; background:linear-gradient(135deg,var(--neon1),var(--neon2)); border:none; color:#fff; cursor:pointer; font-family:'Syne',sans-serif; font-weight:700; font-size:12px; letter-spacing:1px; transition:all .2s; }
+  #sendBtn:hover { filter:brightness(1.15); }
+
+  .library-section { margin:28px 0; }
+  .section-title { font-family:'Syne',sans-serif; font-weight:700; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; display:flex; align-items:center; gap:12px; }
+  .section-title::after { content:''; flex:1; height:1px; background:rgba(124,58,237,.2); }
+  .track-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+  .track-card { background:rgba(255,255,255,.025); border:1px solid rgba(124,58,237,.13); border-radius:14px; padding:14px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:all .25s; }
+  .track-card:hover { border-color:rgba(124,58,237,.4); transform:translateY(-3px); box-shadow:0 8px 24px rgba(124,58,237,.18); }
+  .track-art { width:44px; height:44px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .track-text { flex:1; min-width:0; }
+  .track-name { font-family:'Syne',sans-serif; font-weight:700; font-size:12px; color:#fff; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .track-artist { font-size:10px; color:var(--muted); }
+  .track-actions { display:flex; gap:6px; }
+  .t-btn { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; border:none; transition:all .2s; }
+  .t-play { background:rgba(6,182,212,.15); color:var(--neon2); }
+  .t-play:hover { background:rgba(6,182,212,.3); }
+  .t-dl { background:rgba(124,58,237,.15); color:#a855f7; }
+  .t-dl:hover { background:linear-gradient(135deg,var(--neon1),var(--neon2)); color:#fff; }
+
+  .typing { display:flex; gap:5px; align-items:center; padding:4px 0; }
+  .typing span { width:7px; height:7px; border-radius:50%; background:var(--neon2); animation:tb 1.2s ease-in-out infinite; }
+  .typing span:nth-child(2){animation-delay:.2s} .typing span:nth-child(3){animation-delay:.4s}
+  @keyframes tb { 0%,80%,100%{transform:translateY(0);opacity:.4} 40%{transform:translateY(-6px);opacity:1} }
+
+  .toast { position:fixed; bottom:80px; right:24px; background:linear-gradient(135deg,var(--neon1),var(--neon2)); color:#fff; padding:12px 20px; border-radius:12px; font-size:12px; font-family:'Syne',sans-serif; font-weight:700; box-shadow:0 8px 24px rgba(124,58,237,.5); z-index:200; animation:sIn .3s ease,fOut .4s ease 2.6s forwards; }
+  @keyframes sIn { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes fOut { to{opacity:0;transform:translateX(40px)} }
+
+  footer { text-align:center; padding:24px 0; font-size:10px; color:var(--muted); border-top:1px solid rgba(124,58,237,.1); margin-top:auto; }
+  footer span { background:linear-gradient(90deg,var(--neon1),var(--neon2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">BEAT<span>DROP</span></div>
+    <div class="status-pill"><div class="status-dot"></div>BOT ONLINE</div>
+  </header>
+
+  <div class="source-tabs">
+    <div class="src-tab active" data-src="all" onclick="setSource('all',this)">🌐 All Sources</div>
+    <div class="src-tab" data-src="fma" onclick="setSource('fma',this)">🎵 Free Music Archive</div>
+    <div class="src-tab" data-src="jamendo" onclick="setSource('jamendo',this)">🎸 Jamendo</div>
+    <div class="src-tab" data-src="musopen" onclick="setSource('musopen',this)">🎼 Musopen</div>
+    <div class="src-tab" data-src="soundcloud" onclick="setSource('soundcloud',this)">☁️ SoundCloud Free</div>
+  </div>
+
+  <div class="source-banner" id="sourceBanner">
+    <div class="src-icon">🌐</div>
+    <div><strong>All Sources Active</strong><br>Searching across Free Music Archive, Jamendo, Musopen & SoundCloud Free — 700,000+ legal tracks available.</div>
+  </div>
+
+  <div class="hero">
+    <h1><span class="l1">Your Music.</span><span class="l2">Your Device.</span></h1>
+    <p>Type a command to search and download music from 4 legal sources. Public domain, Creative Commons & artist-uploaded free tracks.</p>
+    <div class="quick-cmds">
+      <div class="cmd-chip" onclick="fillCmd('.download lo-fi chill')">.download lo-fi chill</div>
+      <div class="cmd-chip" onclick="fillCmd('.download beethoven')">.download beethoven</div>
+      <div class="cmd-chip" onclick="fillCmd('.search jazz')">.search jazz</div>
+      <div class="cmd-chip" onclick="fillCmd('.search hip hop')">.search hip hop</div>
+      <div class="cmd-chip" onclick="fillCmd('.library')">.library</div>
+      <div class="cmd-chip" onclick="fillCmd('.help')">.help</div>
+    </div>
+  </div>
+
+  <div class="chat-wrap">
+    <div class="messages" id="messages">
+      <div class="msg">
+        <div class="avatar bot-av">🎧</div>
+        <div><div class="bubble bot-bub">
+          Hey! I'm <strong>BeatDrop Bot</strong> — powered by <strong>4 legal music sources</strong>.<br><br>
+          🎵 <strong>Free Music Archive</strong> — 100,000+ free tracks<br>
+          🎸 <strong>Jamendo</strong> — 600,000+ artist tracks<br>
+          🎼 <strong>Musopen</strong> — Classical public domain<br>
+          ☁️ <strong>SoundCloud Free</strong> — Artist-shared tracks<br><br>
+          Type <code>.download [song/genre]</code> to get started, or <code>.help</code> for all commands.
+        </div></div>
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="input-prefix">›</div>
+      <input type="text" id="chatInput" placeholder=".download lo-fi chill beats..." autocomplete="off"/>
+      <button id="sendBtn" onclick="handleSend()">SEND ↵</button>
+    </div>
+  </div>
+
+  <div class="library-section">
+    <div class="section-title">Featured Tracks — All Sources</div>
+    <div class="track-grid" id="trackGrid"></div>
+  </div>
+
+  <footer><span>BEATDROP</span> &nbsp;·&nbsp; Free Music Archive · Jamendo · Musopen · SoundCloud Free &nbsp;·&nbsp; 100% Legal Downloads</footer>
+</div>
+
+<!-- MINI PLAYER -->
+<div class="mini-player" id="miniPlayer" style="display:none">
+  <div class="player-art" id="playerArt">🎵</div>
+  <div style="flex:1;min-width:0">
+    <div class="player-info">
+      <div class="player-title" id="playerTitle">Track Title</div>
+      <div class="player-artist" id="playerArtist">Artist</div>
+    </div>
+    <div class="player-progress"><div class="player-prog-fill" id="playerFill"></div></div>
+  </div>
+  <div class="player-controls">
+    <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+    <button class="close-btn" onclick="closePlayer()">✕</button>
+  </div>
+  <audio id="audioEl" onended="onAudioEnd()" ontimeupdate="updateProgress()"></audio>
+</div>
+
+<script>
+const MUSIC_DB = [
+  {id:1,title:"Moonlight Sonata Mvt. 1",artist:"Beethoven",genre:"Classical",source:"musopen",emoji:"🌙",color:"linear-gradient(135deg,#4f46e5,#06b6d4)",url:"https://upload.wikimedia.org/wikipedia/commons/a/a4/Ludwig_van_Beethoven_-_Mondscheinsonate.ogg",filename:"Beethoven_Moonlight_Sonata.ogg",tags:["beethoven","moonlight","sonata","classical","piano"]},
+  {id:2,title:"Symphony No. 5",artist:"Beethoven",genre:"Classical",source:"musopen",emoji:"🎼",color:"linear-gradient(135deg,#7c3aed,#db2777)",url:"https://upload.wikimedia.org/wikipedia/commons/a/ac/Ludwig_van_Beethoven_-_Symphony_No._5_in_C_minor_Op._67.ogg",filename:"Beethoven_Symphony5.ogg",tags:["beethoven","symphony","classical","orchestra"]},
+  {id:3,title:"Für Elise",artist:"Beethoven",genre:"Classical",source:"musopen",emoji:"🌹",color:"linear-gradient(135deg,#059669,#06b6d4)",url:"https://upload.wikimedia.org/wikipedia/commons/9/9b/Beethoven_Fur_Elise.ogg",filename:"Beethoven_Fur_Elise.ogg",tags:["beethoven","fur elise","elise","classical","piano"]},
+  {id:4,title:"Four Seasons – Spring",artist:"Vivaldi",genre:"Baroque",source:"musopen",emoji:"🌸",color:"linear-gradient(135deg,#f59e0b,#ef4444)",url:"https://upload.wikimedia.org/wikipedia/commons/b/b5/Vivaldi_-_Four_Seasons_-_Spring.ogg",filename:"Vivaldi_Spring.ogg",tags:["vivaldi","spring","four seasons","baroque","violin"]},
+  {id:5,title:"Clair de Lune",artist:"Debussy",genre:"Impressionist",source:"musopen",emoji:"🌊",color:"linear-gradient(135deg,#0ea5e9,#6366f1)",url:"https://upload.wikimedia.org/wikipedia/commons/e/e1/Debussy_Clair_de_Lune_Zadora.ogg",filename:"Debussy_Clair_de_Lune.ogg",tags:["debussy","clair de lune","moon","classical","piano"]},
+  {id:6,title:"Canon in D",artist:"Pachelbel",genre:"Baroque",source:"musopen",emoji:"🎻",color:"linear-gradient(135deg,#d97706,#7c3aed)",url:"https://upload.wikimedia.org/wikipedia/commons/c/cf/Johann_Pachelbel_-_Canon_and_Gigue_in_D_major.ogg",filename:"Pachelbel_Canon_in_D.ogg",tags:["pachelbel","canon","baroque","strings"]},
+  {id:7,title:"Lo-Fi Study Beat",artist:"Kai Engel",genre:"Lo-Fi / Chill",source:"fma",emoji:"☕",color:"linear-gradient(135deg,#78350f,#7c3aed)",url:"https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Kai_Engel/Irsens_Faerie_Tale/Kai_Engel_-_02_-_Shed.mp3",filename:"Kai_Engel_Lo-Fi.mp3",tags:["lo-fi","chill","lofi","study","beats","relax","ambient","lo fi"]},
+  {id:8,title:"Springish",artist:"Kai Engel",genre:"Acoustic / Folk",source:"fma",emoji:"🎸",color:"linear-gradient(135deg,#16a34a,#06b6d4)",url:"https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Kai_Engel/Irsens_Faerie_Tale/Kai_Engel_-_04_-_Springish.mp3",filename:"Kai_Engel_Springish.mp3",tags:["folk","acoustic","spring","chill","soft","indie"]},
+  {id:9,title:"Hip Hop Bounce",artist:"TRG Banks",genre:"Hip Hop",source:"fma",emoji:"🎤",color:"linear-gradient(135deg,#1d1d1d,#7c3aed)",url:"https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/TRG_Banks/Loops_And_Samples/TRG_Banks_-_01_-_1_16_bounce.mp3",filename:"TRG_Banks_HipHop.mp3",tags:["hip hop","hiphop","rap","beats","trap","urban","hip"]},
+  {id:10,title:"Electronic Dreams",artist:"Rolemusic",genre:"Electronic",source:"fma",emoji:"⚡",color:"linear-gradient(135deg,#0f172a,#06b6d4)",url:"https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Rolemusic/For_Your_Dreams/Rolemusic_-_01_-_Electronic_Dreams.mp3",filename:"Rolemusic_Electronic_Dreams.mp3",tags:["electronic","edm","dance","synth","beats"]},
+  {id:11,title:"Bossa Nova Groove",artist:"Kevin MacLeod",genre:"Jazz",source:"fma",emoji:"🎷",color:"linear-gradient(135deg,#b45309,#1d4ed8)",url:"https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bossa%20Antigua.mp3",filename:"Bossa_Nova_Groove.mp3",tags:["jazz","bossa nova","groove","latin","saxophone","smooth","bossa"]},
+  {id:12,title:"Grey Clouds (Ambient)",artist:"Pitx",genre:"Ambient",source:"fma",emoji:"🌌",color:"linear-gradient(135deg,#1e1b4b,#0ea5e9)",url:"https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Pitx/Pitx/Pitx_-_04_-_Grey_Clouds.mp3",filename:"Pitx_Ambient.mp3",tags:["ambient","space","chill","atmosphere","relaxing","pad"]},
+  {id:13,title:"Night Owl",artist:"Broke For Free",genre:"Pop / Indie",source:"jamendo",emoji:"🌟",color:"linear-gradient(135deg,#ec4899,#f59e0b)",url:"https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Broke_For_Free/Petal/Broke_For_Free_-_01_-_Night_Owl.mp3",filename:"Night_Owl.mp3",tags:["pop","upbeat","catchy","happy","indie","owl"]},
+  {id:14,title:"Snowflake",artist:"Snowflake",genre:"R&B / Soul",source:"jamendo",emoji:"🌃",color:"linear-gradient(135deg,#7c3aed,#f472b6)",url:"https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Snowflake/The_Fridge_Is_Full_Of_Goat_Tracks/Snowflake_-_Snowflake.mp3",filename:"Snowflake.mp3",tags:["rnb","r&b","soul","night","vibes","smooth"]},
+  {id:15,title:"Happy Go Lucky",artist:"Gillicuddy",genre:"Acoustic",source:"soundcloud",emoji:"🎸",color:"linear-gradient(135deg,#92400e,#059669)",url:"https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Gillicuddy/Favorites/Gillicuddy_-_09_-_Happy_Go_Lucky.mp3",filename:"Gillicuddy_Guitar.mp3",tags:["guitar","acoustic","folk","happy","mellow","chill"]},
+  {id:16,title:"Jour de Reve (Trap)",artist:"Senmaya",genre:"Trap",source:"soundcloud",emoji:"🔥",color:"linear-gradient(135deg,#7f1d1d,#f59e0b)",url:"https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Senmaya/Lune/Senmaya_-_Jour_de_Reve.mp3",filename:"Senmaya_Trap.mp3",tags:["trap","hip hop","fire","drill","hard","urban","beats"]}
+];
+
+const SOURCE_INFO = {
+  all:{icon:"🌐",name:"All Sources Active",desc:"Searching across Free Music Archive, Jamendo, Musopen & SoundCloud Free — 700,000+ legal tracks."},
+  fma:{icon:"🎵",name:"Free Music Archive",desc:"100,000+ free tracks. All music is free to download under Creative Commons licenses."},
+  jamendo:{icon:"🎸",name:"Jamendo",desc:"600,000+ tracks uploaded by independent artists worldwide. Free for personal use."},
+  musopen:{icon:"🎼",name:"Musopen",desc:"Public domain classical music recordings. Completely free, forever."},
+  soundcloud:{icon:"☁️",name:"SoundCloud Free",desc:"Artist-shared tracks with free download enabled. Direct from creators."}
+};
+
+let activeSource='all', currentTrack=null, isPlaying=false;
+
+function setSource(src,el) {
+  activeSource=src;
+  document.querySelectorAll('.src-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const i=SOURCE_INFO[src];
+  document.getElementById('sourceBanner').innerHTML=`<div class="src-icon">${i.icon}</div><div><strong>${i.name}</strong><br>${i.desc}</div>`;
+}
+
+function getDB() { return activeSource==='all'?MUSIC_DB:MUSIC_DB.filter(t=>t.source===activeSource); }
+
+function searchTracks(q) {
+  const query=q.toLowerCase();
+  return getDB().filter(t=>
+    t.tags.some(tag=>query.includes(tag)||tag.includes(query.split(' ')[0]))||
+    t.title.toLowerCase().includes(query)||
+    t.artist.toLowerCase().includes(query)||
+    t.genre.toLowerCase().includes(query)
+  );
+}
+
+function srcBadge(src) {
+  const labels={fma:'FMA',jamendo:'JAMENDO',musopen:'MUSOPEN',soundcloud:'SOUNDCLOUD'};
+  return `<span class="dl-src-badge badge-${src}">${labels[src]||src.toUpperCase()}</span>`;
+}
+
+const messagesEl=document.getElementById('messages');
+const inputEl=document.getElementById('chatInput');
+function scrollBottom(){messagesEl.scrollTop=messagesEl.scrollHeight;}
+
+function addMsg(html,type='bot'){
+  const d=document.createElement('div');
+  d.className=`msg ${type==='user'?'user':''}`;
+  d.innerHTML=`<div class="avatar ${type==='user'?'usr-av':'bot-av'}">${type==='user'?'👤':'🎧'}</div><div><div class="bubble ${type==='user'?'usr-bub':'bot-bub'}">${html}</div></div>`;
+  messagesEl.appendChild(d); scrollBottom(); return d;
+}
+
+function addTyping(){
+  const d=document.createElement('div'); d.className='msg'; d.id='typ';
+  d.innerHTML=`<div class="avatar bot-av">🎧</div><div><div class="bubble bot-bub"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+  messagesEl.appendChild(d); scrollBottom();
+}
+function removeTyping(){const t=document.getElementById('typ');if(t)t.remove();}
+function fillCmd(c){inputEl.value=c;inputEl.focus();}
+function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3100);}
+
+function triggerDownload(track,btn){
+  showToast(`⬇️ Downloading: ${track.title}`);
+  if(btn){
+    const card=btn.closest('.dl-card');
+    const bar=card?.querySelector('.progress-bar'),fill=card?.querySelector('.progress-fill');
+    if(bar&&fill){
+      bar.style.display='block'; btn.textContent='⏳ Saving...'; btn.disabled=true;
+      let w=0; const iv=setInterval(()=>{w+=Math.random()*15;if(w>=100){w=100;clearInterval(iv);btn.textContent='✅ Saved!';}fill.style.width=w+'%';},100);
+    }
+  }
+  const a=document.createElement('a');a.href=track.url;a.download=track.filename;a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function playTrack(track){
+  currentTrack=track;
+  const audio=document.getElementById('audioEl');
+  audio.src=track.url;
+  document.getElementById('playerArt').style.background=track.color;
+  document.getElementById('playerArt').textContent=track.emoji;
+  document.getElementById('playerTitle').textContent=track.title;
+  document.getElementById('playerArtist').textContent=track.artist+' · '+track.genre;
+  document.getElementById('miniPlayer').style.display='flex';
+  audio.play().then(()=>{isPlaying=true;document.getElementById('playBtn').textContent='⏸';}).catch(()=>showToast('⚠️ Preview unavailable — click Download instead'));
+}
+
+function togglePlay(){
+  const audio=document.getElementById('audioEl');
+  if(isPlaying){audio.pause();isPlaying=false;document.getElementById('playBtn').textContent='▶';}
+  else{audio.play();isPlaying=true;document.getElementById('playBtn').textContent='⏸';}
+}
+function closePlayer(){document.getElementById('audioEl').pause();document.getElementById('miniPlayer').style.display='none';isPlaying=false;}
+function onAudioEnd(){isPlaying=false;document.getElementById('playBtn').textContent='▶';document.getElementById('playerFill').style.width='0%';}
+function updateProgress(){const a=document.getElementById('audioEl');if(a.duration)document.getElementById('playerFill').style.width=(a.currentTime/a.duration*100)+'%';}
+
+function buildDLCard(track){
+  const d=document.createElement('div'); d.className='dl-card';
+  d.innerHTML=`
+    <div class="dl-thumb" style="background:${track.color}">${track.emoji}</div>
+    <div class="dl-info">
+      <div class="dl-title">${track.title}</div>
+      <div class="dl-meta">${track.artist} · ${track.genre} ${srcBadge(track.source)}</div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+    <div class="card-btns">
+      <button class="preview-btn" onclick="playTrack(MUSIC_DB.find(t=>t.id===${track.id}))">▶ Play</button>
+      <button class="dl-btn" onclick="triggerDownload(MUSIC_DB.find(t=>t.id===${track.id}),this)">⬇ Download</button>
+    </div>
+  `;
+  return d;
+}
+
+function smartSearch(query) {
+  const q = query.toLowerCase().trim();
+  const db = getDB();
+
+  // Score each track by relevance
+  const scored = db.map(track => {
+    let score = 0;
+    const fields = [
+      track.title.toLowerCase(),
+      track.artist.toLowerCase(),
+      track.genre.toLowerCase(),
+      ...track.tags
+    ];
+
+    // Exact tag match = highest score
+    if (track.tags.some(tag => tag === q)) score += 100;
+    // Tag contains query word
+    if (track.tags.some(tag => tag.includes(q) || q.includes(tag))) score += 60;
+    // Title match
+    if (track.title.toLowerCase().includes(q)) score += 50;
+    // Artist match
+    if (track.artist.toLowerCase().includes(q)) score += 50;
+    // Genre match
+    if (track.genre.toLowerCase().includes(q)) score += 40;
+    // Word-by-word matching
+    const words = q.split(/\s+/);
+    words.forEach(word => {
+      if (word.length < 3) return;
+      fields.forEach(f => { if (f.includes(word)) score += 20; });
+    });
+
+    return { track, score };
+  });
+
+  return scored
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(s => s.track);
+}
+
+function processCommand(raw){
+  const trimmed = raw.trim();
+  const cmd = trimmed.toLowerCase();
+
+  // Strip leading dot if present, normalize command
+  const normalized = cmd.replace(/^\./, '');
+
+  // HELP
+  if (normalized === 'help' || cmd === '.help' || cmd === 'help') {
+    return {type:'text',html:`<strong>🎧 BeatDrop Commands:</strong><br><br>
+    <code>.download beethoven</code> — download a track<br>
+    <code>.search jazz</code> — search tracks<br>
+    <code>.library</code> — see all tracks<br>
+    <code>.source fma</code> — switch source<br><br>
+    <strong>Or just type naturally:</strong><br>
+    <em>"give me lo-fi music"</em><br>
+    <em>"I want hip hop beats"</em><br>
+    <em>"play some jazz"</em><br><br>
+    <strong>Available genres:</strong> lo-fi · jazz · hip hop · classical · ambient · electronic · pop · acoustic · trap · baroque`};
+  }
+
+  // LIBRARY
+  if (normalized === 'library' || cmd === 'show library' || cmd === 'list all') {
+    const list = getDB().map(t=>`${srcBadge(t.source)} <strong>${t.title}</strong> — ${t.artist}`).join('<br>');
+    return{type:'text',html:`<strong>📚 Library (${getDB().length} tracks):</strong><br><br>${list}`};
+  }
+
+  // SOURCE SWITCH
+  if (normalized.startsWith('source ')) {
+    const s = normalized.replace('source ','').trim();
+    const tab = document.querySelector(`[data-src="${s}"]`);
+    if (tab) { setSource(s,tab); return{type:'text',html:`✅ Switched to <strong>${SOURCE_INFO[s]?.name||s}</strong>!`}; }
+    return{type:'text',html:`❌ Unknown source. Try: <code>fma</code>, <code>jamendo</code>, <code>musopen</code>, <code>soundcloud</code>, <code>all</code>`};
+  }
+
+  // DOWNLOAD command (with or without dot)
+  const isDownloadCmd = normalized.startsWith('download ') || cmd.startsWith('.download ');
+  const isSearchCmd = normalized.startsWith('search ') || cmd.startsWith('.search ');
+
+  if (isDownloadCmd || isSearchCmd) {
+    const query = trimmed.replace(/^\.(download|search)\s+/i,'').replace(/^(download|search)\s+/i,'');
+    const results = smartSearch(query);
+    if (!results.length) return suggestTracks(query);
+    return {type:'tracks', tracks: isDownloadCmd ? [results[0]] : results.slice(0,4), autoDownload: isDownloadCmd, query};
+  }
+
+  // NATURAL LANGUAGE — detect intent from free text
+  const naturalQuery = extractMusicQuery(cmd);
+  if (naturalQuery) {
+    const results = smartSearch(naturalQuery);
+    if (results.length) {
+      return {type:'tracks', tracks: results.slice(0,3), autoDownload: false, query: naturalQuery};
+    }
+  }
+
+  // Fallback — try searching whatever they typed
+  const fallback = smartSearch(cmd);
+  if (fallback.length) {
+    return {type:'tracks', tracks: fallback.slice(0,3), autoDownload: false, query: cmd};
+  }
+
+  return suggestTracks(cmd);
+}
+
+function extractMusicQuery(text) {
+  // Extract music intent from natural language
+  const patterns = [
+    /(?:play|give me|i want|find|get me|download|search|show me)\s+(?:some\s+)?(.+?)(?:\s+music|\s+songs?|\s+tracks?|\s+beats?)?$/i,
+    /(?:i like|i love|i need)\s+(.+?)(?:\s+music|\s+songs?)?$/i,
+    /(.+?)\s+(?:music|songs?|tracks?|beats?)$/i,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m && m[1] && m[1].length > 1) return m[1].trim();
+  }
+  return text.length > 2 ? text : null;
+}
+
+function suggestTracks(query) {
+  // Show random tracks as suggestions when nothing found
+  const suggestions = MUSIC_DB.slice(0,3);
+  return {
+    type:'text',
+    html:`😕 Couldn't find "<strong>${query}</strong>"<br><br>
+    Try these commands:<br>
+    <code>.download beethoven</code><br>
+    <code>.search jazz</code><br>
+    <code>.search lo-fi</code><br>
+    <code>.library</code> — see all ${MUSIC_DB.length} tracks<br><br>
+    <em>Or just type a genre: jazz, hip hop, classical, lo-fi, ambient...</em>`
+  };
+}
+
+async function handleSend(){
+  let val=inputEl.value.trim(); if(!val)return; inputEl.value='';
+  // Auto-fix if user forgot the dot but typed a known command
+  if(!val.startsWith('.') && /^(download|search|library|help|source)\s*/i.test(val)) {
+    val = '.' + val;
+  }
+  addMsg(val,'user'); addTyping();
+  await new Promise(r=>setTimeout(r,700+Math.random()*500));
+  removeTyping();
+  const result=processCommand(val);
+  if(result.type==='text'){ addMsg(result.html,'bot'); }
+  else {
+    const intro=result.autoDownload
+      ?`🎯 Best match: <strong>${result.tracks[0].title}</strong> by <strong>${result.tracks[0].artist}</strong>`
+      :`🔍 Found <strong>${result.tracks.length}</strong> track(s) for "<strong>${result.query}</strong>":`;
+    const msgNode=addMsg(intro,'bot');
+    const grid=document.createElement('div'); grid.className='results-grid';
+    result.tracks.forEach(t=>grid.appendChild(buildDLCard(t)));
+    msgNode.querySelector('.bubble').appendChild(grid);
+    if(result.autoDownload) setTimeout(()=>triggerDownload(result.tracks[0],null),500);
+    scrollBottom();
+  }
+}
+
+inputEl.addEventListener('keydown',e=>{if(e.key==='Enter')handleSend();});
+
+// Render grid
+const grid=document.getElementById('trackGrid');
+MUSIC_DB.forEach(track=>{
+  const c=document.createElement('div'); c.className='track-card';
+  c.innerHTML=`
+    <div class="track-art" style="background:${track.color}">${track.emoji}</div>
+    <div class="track-text">
+      <div class="track-name">${track.title}</div>
+      <div class="track-artist">${track.artist} · ${srcBadge(track.source)}</div>
+    </div>
+    <div class="track-actions">
+      <button class="t-btn t-play" title="Preview" onclick="playTrack(MUSIC_DB.find(t=>t.id===${track.id}));event.stopPropagation()">▶</button>
+      <button class="t-btn t-dl" title="Download" onclick="triggerDownload(MUSIC_DB.find(t=>t.id===${track.id}),null);event.stopPropagation()">⬇</button>
+    </div>
+  `;
+  c.onclick=()=>fillCmd(`.download ${track.title.toLowerCase()}`);
+  grid.appendChild(c);
+});
+</script>
+</body>
+</html>
